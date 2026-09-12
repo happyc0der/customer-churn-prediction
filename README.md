@@ -16,7 +16,7 @@ app, and a *Compare all models* mode scores the same customers with every one. T
 default is gradient boosting, tuned to catch churners rather than to maximise raw
 accuracy — see [the model gallery](#the-model-gallery).
 
-![Demo of the Streamlit app](streamlit-app.gif)
+![The app: picking an algorithm, predicting, and comparing all nine](streamlit-app.gif)
 
 ---
 

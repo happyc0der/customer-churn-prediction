@@ -45,7 +45,7 @@ def show_model_card(entry, is_best):
         )
 
 
-def online_prediction(model):
+def online_prediction(model, entry):
     st.info("Input data below")
     # Based on our optimal features selection
     st.subheader("Demographic data")
@@ -101,7 +101,11 @@ def online_prediction(model):
             st.warning('Yes, the customer will terminate the service.')
         else:
             st.success('No, the customer is happy with Telco Services.')
-        st.caption(f'Estimated probability of churn: {probability:.1%}')
+        st.caption(
+            f'Estimated probability of churn: {probability:.1%}. '
+            f"{entry['name']} flags a customer above {entry['threshold']:.1%}, "
+            'the threshold tuned for it during training.'
+        )
 
 
 def compare_all(index):
@@ -143,11 +147,13 @@ def compare_all(index):
     st.dataframe(styled)
     st.caption(
         'Each column is one algorithm. The rows with the largest spread are the '
-        'customers where the choice of model actually changes the answer.'
+        'customers where the choice of model actually changes the answer. Each '
+        'model applies its own tuned threshold to these probabilities, so a '
+        'higher number does not always mean a churn verdict.'
     )
 
 
-def batch_prediction(model):
+def batch_prediction(model, entry):
     st.subheader("Dataset upload")
     uploaded_file = st.file_uploader("Choose a file", type='csv')
     if uploaded_file is None:
@@ -177,6 +183,10 @@ def batch_prediction(model):
 
         st.subheader('Prediction')
         st.write(prediction_df)
+        st.caption(
+            f"{entry['name']} flags a customer above "
+            f"{entry['threshold']:.1%} churn probability."
+        )
 
 
 def main():
@@ -218,9 +228,9 @@ def main():
 
     model = get_model(entry['slug'])
     if mode == "Online":
-        online_prediction(model)
+        online_prediction(model, entry)
     else:
-        batch_prediction(model)
+        batch_prediction(model, entry)
 
 
 if __name__ == '__main__':

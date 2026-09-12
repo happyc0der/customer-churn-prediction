@@ -54,6 +54,29 @@ def warn_about_unknowns(prepared, model):
         'spelling against the columns listed in the README.\n\n' + lines)
 
 
+def read_upload(uploaded_file):
+    """Read an uploaded CSV, or explain why it could not be read.
+
+    Returns None once a message has been shown. Without this an empty file,
+    a non-CSV renamed to .csv, or a file with headers but no rows each
+    reached pandas or scikit-learn raw and surfaced as a traceback.
+    """
+    try:
+        data = pd.read_csv(uploaded_file)
+    except pd.errors.EmptyDataError:
+        st.error('That file is empty — it has no columns to read.')
+        return None
+    except (UnicodeDecodeError, pd.errors.ParserError):
+        st.error('That file could not be read as CSV. Export it as plain '
+                 'comma-separated text and try again.')
+        return None
+    if data.empty:
+        st.warning('That file has column headers but no rows, so there is '
+                   'nothing to predict.')
+        return None
+    return data
+
+
 def warn_about_charges(prepared, limit=5):
     """Flag rows whose tenure and charges contradict each other."""
     problems = implausible_charges(prepared)
@@ -161,7 +184,9 @@ def compare_all(index):
     if uploaded_file is None:
         return
 
-    data = pd.read_csv(uploaded_file)
+    data = read_upload(uploaded_file)
+    if data is None:
+        return
     st.write(data.head())
     if not st.button('Compare'):
         return
@@ -204,7 +229,9 @@ def batch_prediction(model, entry):
     if uploaded_file is None:
         return
 
-    data = pd.read_csv(uploaded_file)
+    data = read_upload(uploaded_file)
+    if data is None:
+        return
     # Get overview of data
     st.write(data.head())
 

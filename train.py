@@ -26,6 +26,8 @@ import joblib
 import numpy as np
 import pandas as pd
 import sklearn
+from scipy.stats import loguniform, randint, uniform
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import (
     ExtraTreesClassifier,
@@ -56,16 +58,14 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
-from sklearn.calibration import CalibratedClassifierCV
 from sklearn.svm import SVC, LinearSVC
-from scipy.stats import loguniform, randint, uniform
 
 from preprocessing import (
     DATA_PATH,
     INDEX_PATH,
     MODELS_DIR,
-    PLOT_PATH,
     NUMERIC_COLUMNS,
+    PLOT_PATH,
     RAW_COLUMNS,
     prepare_features,
 )

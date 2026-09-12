@@ -131,7 +131,8 @@ Nearly every test pins a bug that actually shipped in this repository, and each
 is commented with the one it guards. They were validated by reintroducing those
 bugs one at a time and confirming the suite goes red — all nine did.
 
-Linting uses [ruff](https://docs.astral.sh/ruff/), configured in `ruff.toml`:
+Linting uses [ruff](https://docs.astral.sh/ruff/), configured in `ruff.toml` —
+likely bugs, dead code, import order and a 100-character line limit:
 
 ```bash
 ruff check

@@ -16,14 +16,19 @@ from PIL import Image
 from preprocessing import (
     BASE_DIR,
     INDEX_PATH,
+    implausible_charges,
     load_index,
     load_model,
-    implausible_charges,
     prepare_features,
     unknown_values,
 )
 
 IMAGE_PATH = BASE_DIR / 'App.jpg'
+
+# The option sets the form offers. They have to match the values the model was
+# trained on, which the README lists column by column.
+YES_NO = ('Yes', 'No')
+YES_NO_OR_NO_INTERNET = ('Yes', 'No', 'No internet service')
 
 
 @st.cache_resource
@@ -113,26 +118,37 @@ def online_prediction(model, entry):
     st.info("Input data below")
     # Based on our optimal features selection
     st.subheader("Demographic data")
-    seniorcitizen = st.selectbox('Senior Citizen:', ('Yes', 'No'))
-    dependents = st.selectbox('Dependent:', ('Yes', 'No'))
+    seniorcitizen = st.selectbox('Senior Citizen:', YES_NO)
+    dependents = st.selectbox('Dependent:', YES_NO)
 
     st.subheader("Payment data")
-    tenure = st.slider('Number of months the customer has stayed with the company', min_value=0, max_value=72, value=0)
+    tenure = st.slider('Number of months the customer has stayed with the company',
+                       min_value=0, max_value=72, value=0)
     contract = st.selectbox('Contract', ('Month-to-month', 'One year', 'Two year'))
-    paperlessbilling = st.selectbox('Paperless Billing', ('Yes', 'No'))
-    paymentmethod = st.selectbox('PaymentMethod', ('Electronic check', 'Mailed check', 'Bank transfer (automatic)', 'Credit card (automatic)'))
-    monthlycharges = st.number_input('The amount charged to the customer monthly', min_value=0, max_value=150, value=0)
-    totalcharges = st.number_input('The total amount charged to the customer', min_value=0, max_value=10000, value=0)
+    paperlessbilling = st.selectbox('Paperless Billing', YES_NO)
+    paymentmethod = st.selectbox('PaymentMethod',
+                                 ('Electronic check', 'Mailed check',
+                                  'Bank transfer (automatic)', 'Credit card (automatic)'))
+    monthlycharges = st.number_input('The amount charged to the customer monthly',
+                                     min_value=0, max_value=150, value=0)
+    totalcharges = st.number_input('The total amount charged to the customer',
+                                   min_value=0, max_value=10000, value=0)
 
     st.subheader("Services signed up for")
-    multiplelines = st.selectbox("Does the customer have multiple lines", ('Yes', 'No', 'No phone service'))
-    phoneservice = st.selectbox('Phone Service:', ('Yes', 'No'))
-    internetservice = st.selectbox("Does the customer have internet service", ('DSL', 'Fiber optic', 'No'))
-    onlinesecurity = st.selectbox("Does the customer have online security", ('Yes', 'No', 'No internet service'))
-    onlinebackup = st.selectbox("Does the customer have online backup", ('Yes', 'No', 'No internet service'))
-    techsupport = st.selectbox("Does the customer have technology support", ('Yes', 'No', 'No internet service'))
-    streamingtv = st.selectbox("Does the customer stream TV", ('Yes', 'No', 'No internet service'))
-    streamingmovies = st.selectbox("Does the customer stream movies", ('Yes', 'No', 'No internet service'))
+    multiplelines = st.selectbox("Does the customer have multiple lines",
+                                 ('Yes', 'No', 'No phone service'))
+    phoneservice = st.selectbox('Phone Service:', YES_NO)
+    internetservice = st.selectbox("Does the customer have internet service",
+                                   ('DSL', 'Fiber optic', 'No'))
+    onlinesecurity = st.selectbox("Does the customer have online security",
+                                  YES_NO_OR_NO_INTERNET)
+    onlinebackup = st.selectbox("Does the customer have online backup",
+                                YES_NO_OR_NO_INTERNET)
+    techsupport = st.selectbox("Does the customer have technology support",
+                               YES_NO_OR_NO_INTERNET)
+    streamingtv = st.selectbox("Does the customer stream TV", YES_NO_OR_NO_INTERNET)
+    streamingmovies = st.selectbox("Does the customer stream movies",
+                                   YES_NO_OR_NO_INTERNET)
 
     data = {
         'SeniorCitizen': seniorcitizen,
@@ -270,8 +286,9 @@ def main():
 
     # Setting Application description
     st.markdown("""
-     :dart:  This Streamlit app is made to predict customer churn in a fictional telecommunication use case.
-    The application is functional for both online prediction and batch data prediction. \n
+     :dart:  This Streamlit app is made to predict customer churn in a fictional
+    telecommunication use case. The application is functional for both online
+    prediction and batch data prediction. \n
     """)
 
     try:

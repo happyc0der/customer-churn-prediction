@@ -10,6 +10,7 @@ import pytest
 from streamlit.testing.v1 import AppTest
 
 import app
+from preprocessing import known_categories
 
 
 def upload(text, encoding='utf-8'):
@@ -175,3 +176,39 @@ def test_compare_mode_scores_every_algorithm(running_app, root, index):
     for entry in index['models']:
         assert entry['name'] in table.columns
     assert 'Spread (max - min)' in table.columns
+
+
+# The form's options and the encoder's vocabulary have to stay in step. If a
+# widget offers a spelling the model never saw, the app silently scores that
+# choice as the reference category -- the same silent wrongness the unknown
+# value warning exists to catch, except here it comes from our own UI.
+FORM_LABEL_TO_COLUMN = {
+    'Senior Citizen:': 'SeniorCitizen',
+    'Dependent:': 'Dependents',
+    'Contract': 'Contract',
+    'Paperless Billing': 'PaperlessBilling',
+    'PaymentMethod': 'PaymentMethod',
+    'Does the customer have multiple lines': 'MultipleLines',
+    'Phone Service:': 'PhoneService',
+    'Does the customer have internet service': 'InternetService',
+    'Does the customer have online security': 'OnlineSecurity',
+    'Does the customer have online backup': 'OnlineBackup',
+    'Does the customer have technology support': 'TechSupport',
+    'Does the customer stream TV': 'StreamingTV',
+    'Does the customer stream movies': 'StreamingMovies',
+}
+
+
+def test_form_offers_exactly_what_the_model_was_trained_on(running_app, best_model):
+    vocabulary = known_categories(best_model)
+
+    checked = 0
+    for box in running_app.selectbox:
+        column = FORM_LABEL_TO_COLUMN.get(box.label)
+        if column is None:
+            continue
+        assert set(box.options) == set(vocabulary[column]), \
+            f'{column}: form offers {sorted(box.options)}, model knows {sorted(vocabulary[column])}'
+        checked += 1
+
+    assert checked == len(FORM_LABEL_TO_COLUMN), 'a form widget went missing'

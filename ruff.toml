@@ -1,6 +1,11 @@
 # Lint settings, shared by local runs and CI so both agree. Run: ruff check
 target-version = "py311"
 
+# The code already sits well under this: the 95th percentile line is 79
+# characters and the 99th is 90. A limit of 100 catches genuine outliers
+# without forcing everything to be rewrapped.
+line-length = 100
+
 # The notebook is an archived record of the exploratory analysis, not code
 # that is maintained. Linting it would mean rewriting the analysis it
 # documents, so it is left alone deliberately.
@@ -18,4 +23,6 @@ select = [
     "UP",    # syntax outdated for the target version
     "PIE",   # assorted lints
     "PERF",  # obvious performance traps
+    "I",     # import ordering
+    "E501",  # line length, per the limit above
 ]

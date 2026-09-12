@@ -1,0 +1,234 @@
+{
+  "generated": "2026-09-12",
+  "dataset": "churn.csv",
+  "rows": 7043,
+  "test_size": 0.2,
+  "random_state": 42,
+  "selection_metric": "average_precision",
+  "best": "gradient_boosting",
+  "models": [
+    {
+      "slug": "gradient_boosting",
+      "name": "Gradient boosting",
+      "family": "Boosted trees",
+      "blurb": "Shallow trees fitted one after another, each correcting the errors of the ones before it.",
+      "file": "gradient_boosting.joblib",
+      "cv_score": 0.6733846937033618,
+      "threshold": 0.30585106696327624,
+      "params": {
+        "learning_rate": 0.011720087201588045,
+        "max_depth": 4,
+        "n_estimators": 289,
+        "subsample": 0.6362425738131283
+      },
+      "test": {
+        "accuracy": 0.7672107877927609,
+        "balanced_accuracy": 0.7621418791495518,
+        "precision": 0.5445736434108527,
+        "recall": 0.7513368983957219,
+        "f1": 0.6314606741573033,
+        "roc_auc": 0.8455785476245834,
+        "pr_auc": 0.6573937942495767
+      },
+      "fit_seconds": 16.8,
+      "size_kb": 452.8
+    },
+    {
+      "slug": "hist_gradient_boosting",
+      "name": "Histogram gradient boosting",
+      "family": "Boosted trees",
+      "blurb": "Gradient boosting on binned features. Much faster to fit, and usually scores about the same.",
+      "file": "hist_gradient_boosting.joblib",
+      "cv_score": 0.6669673257901744,
+      "threshold": 0.6012941694876611,
+      "params": {
+        "l2_regularization": 0.002458603276328005,
+        "learning_rate": 0.1024932221692416,
+        "max_leaf_nodes": 11,
+        "min_samples_leaf": 53
+      },
+      "test": {
+        "accuracy": 0.7792760823278921,
+        "balanced_accuracy": 0.755839727195226,
+        "precision": 0.567741935483871,
+        "recall": 0.7058823529411765,
+        "f1": 0.6293206197854588,
+        "roc_auc": 0.8410214678756878,
+        "pr_auc": 0.6589144165838448
+      },
+      "fit_seconds": 7.2,
+      "size_kb": 108.2
+    },
+    {
+      "slug": "random_forest",
+      "name": "Random forest",
+      "family": "Bagged trees",
+      "blurb": "Many decorrelated decision trees averaged together. Robust, and needs little tuning.",
+      "file": "random_forest.joblib",
+      "cv_score": 0.6666150437497156,
+      "threshold": 0.4891793689347667,
+      "params": {
+        "max_depth": 8,
+        "max_features": "log2",
+        "min_samples_leaf": 13,
+        "n_estimators": 203
+      },
+      "test": {
+        "accuracy": 0.7452093683463449,
+        "balanced_accuracy": 0.76424216590457,
+        "precision": 0.5127768313458262,
+        "recall": 0.8048128342245989,
+        "f1": 0.6264308012486993,
+        "roc_auc": 0.8440504792167196,
+        "pr_auc": 0.6557180706858923
+      },
+      "fit_seconds": 7.0,
+      "size_kb": 1969.0
+    },
+    {
+      "slug": "rbf_svm",
+      "name": "RBF SVM",
+      "family": "Support vector machine",
+      "blurb": "Support vector machine with a radial basis kernel, so it can fit curved boundaries. Calibrated to report probabilities.",
+      "file": "rbf_svm.joblib",
+      "cv_score": 0.6611928391996925,
+      "threshold": 0.4135188160457095,
+      "params": {
+        "estimator__C": 1.2306931514988035,
+        "estimator__gamma": 0.013311216080736894
+      },
+      "test": {
+        "accuracy": 0.7615330021291696,
+        "balanced_accuracy": 0.7557157250251879,
+        "precision": 0.5366795366795367,
+        "recall": 0.7433155080213903,
+        "f1": 0.6233183856502242,
+        "roc_auc": 0.8350874473636622,
+        "pr_auc": 0.6342984013382623
+      },
+      "fit_seconds": 14.9,
+      "size_kb": 420.7
+    },
+    {
+      "slug": "logistic_regression",
+      "name": "Logistic regression",
+      "family": "Linear",
+      "blurb": "Linear decision boundary on the encoded features. Fast, and the coefficients are readable as per-feature effects.",
+      "file": "logistic_regression.joblib",
+      "cv_score": 0.660939088121619,
+      "threshold": 0.5708386048088901,
+      "params": {
+        "C": 1.2173252504194043,
+        "solver": "lbfgs"
+      },
+      "test": {
+        "accuracy": 0.7636621717530163,
+        "balanced_accuracy": 0.7528959673460953,
+        "precision": 0.5405940594059406,
+        "recall": 0.7299465240641712,
+        "f1": 0.621160409556314,
+        "roc_auc": 0.8417060631894391,
+        "pr_auc": 0.6318052235833883
+      },
+      "fit_seconds": 2.8,
+      "size_kb": 3.5
+    },
+    {
+      "slug": "linear_svm",
+      "name": "Linear SVM",
+      "family": "Support vector machine",
+      "blurb": "Maximum-margin linear separator (liblinear), wrapped in Platt scaling so it reports probabilities.",
+      "file": "linear_svm.joblib",
+      "cv_score": 0.6599969751045812,
+      "threshold": 0.33692243764064245,
+      "params": {
+        "estimator__C": 0.24810409748678125
+      },
+      "test": {
+        "accuracy": 0.7622427253371186,
+        "balanced_accuracy": 0.7485145573380867,
+        "precision": 0.5390781563126252,
+        "recall": 0.7192513368983957,
+        "f1": 0.6162657502863689,
+        "roc_auc": 0.8399596992947376,
+        "pr_auc": 0.6303015866888743
+      },
+      "fit_seconds": 1.0,
+      "size_kb": 4.4
+    },
+    {
+      "slug": "extra_trees",
+      "name": "Extra trees",
+      "family": "Bagged trees",
+      "blurb": "Like a random forest, but split points are chosen at random, trading a little bias for lower variance.",
+      "file": "extra_trees.joblib",
+      "cv_score": 0.6526329263876152,
+      "threshold": 0.5559688185096433,
+      "params": {
+        "max_depth": 8,
+        "max_features": "log2",
+        "min_samples_leaf": 13,
+        "n_estimators": 203
+      },
+      "test": {
+        "accuracy": 0.7629524485450674,
+        "balanced_accuracy": 0.7532666821669379,
+        "precision": 0.5393700787401575,
+        "recall": 0.732620320855615,
+        "f1": 0.6213151927437641,
+        "roc_auc": 0.8356919579425973,
+        "pr_auc": 0.6307778148449825
+      },
+      "fit_seconds": 5.4,
+      "size_kb": 3241.4
+    },
+    {
+      "slug": "knn",
+      "name": "K-nearest neighbours",
+      "family": "Instance based",
+      "blurb": "Classifies a customer by the labels of the most similar customers in the training set. No model is really fitted.",
+      "file": "knn.joblib",
+      "cv_score": 0.633391881395388,
+      "threshold": 0.38011695906432746,
+      "params": {
+        "n_neighbors": 76,
+        "p": 1,
+        "weights": "uniform"
+      },
+      "test": {
+        "accuracy": 0.7572746628814763,
+        "balanced_accuracy": 0.749401947867421,
+        "precision": 0.5310077519379846,
+        "recall": 0.732620320855615,
+        "f1": 0.6157303370786517,
+        "roc_auc": 0.8357875429486683,
+        "pr_auc": 0.6281376368052982
+      },
+      "fit_seconds": 1.3,
+      "size_kb": 360.3
+    },
+    {
+      "slug": "naive_bayes",
+      "name": "Naive Bayes",
+      "family": "Probabilistic",
+      "blurb": "Assumes every feature is independent given the outcome. That is plainly false here, which is why it trails the rest.",
+      "file": "naive_bayes.joblib",
+      "cv_score": 0.6171757234960635,
+      "threshold": 0.9898989723977291,
+      "params": {
+        "var_smoothing": 0.00040338008326003835
+      },
+      "test": {
+        "accuracy": 0.7381121362668559,
+        "balanced_accuracy": 0.7440427290810923,
+        "precision": 0.5044563279857398,
+        "recall": 0.7566844919786097,
+        "f1": 0.6053475935828877,
+        "roc_auc": 0.8099124234674108,
+        "pr_auc": 0.5874747497755193
+      },
+      "fit_seconds": 0.8,
+      "size_kb": 4.1
+    }
+  ]
+}

@@ -1,21 +1,46 @@
-"""Streamlit front end for the Telco customer churn model.
+"""Streamlit front end for the Telco customer churn models.
 
 Run it from the repository root with:  streamlit run app.py
+
+Every algorithm trained by `train.py` is selectable in the sidebar, so the
+same customer can be scored by each one for comparison.
 """
 
-import joblib
 import pandas as pd
 import streamlit as st
 from PIL import Image
 
-from preprocessing import BASE_DIR, MODEL_PATH, prepare_features
+from preprocessing import BASE_DIR, load_index, load_model, prepare_features
 
 IMAGE_PATH = BASE_DIR / 'App.jpg'
 
 
 @st.cache_resource
-def load_model():
-    return joblib.load(MODEL_PATH)
+def get_index():
+    return load_index()
+
+
+@st.cache_resource
+def get_model(slug):
+    return load_model(slug)
+
+
+def show_model_card(entry, is_best):
+    """Sidebar summary of the selected algorithm and how it scored."""
+    label = f"{entry['name']} — best" if is_best else entry['name']
+    with st.sidebar.expander(f'About: {label}', expanded=False):
+        st.caption(entry['family'])
+        st.write(entry['blurb'])
+        test = entry['test']
+        left, right = st.columns(2)
+        left.metric('Recall (churn)', f"{test['recall']:.3f}")
+        right.metric('Precision (churn)', f"{test['precision']:.3f}")
+        left.metric('F1 (churn)', f"{test['f1']:.3f}")
+        right.metric('ROC AUC', f"{test['roc_auc']:.3f}")
+        st.caption(
+            f"Decision threshold {entry['threshold']:.3f}, tuned for F1. "
+            f"Scores are on the held-out test set."
+        )
 
 
 def online_prediction(model):
@@ -77,6 +102,40 @@ def online_prediction(model):
         st.caption(f'Estimated probability of churn: {probability:.1%}')
 
 
+def compare_all(index):
+    """Score one customer with every algorithm, to see where they disagree."""
+    st.subheader('Compare every algorithm')
+    st.write(
+        'Upload a CSV and each trained model scores the same rows, so you can see '
+        'where the algorithms agree and where they part company.'
+    )
+    uploaded_file = st.file_uploader("Choose a file", type='csv', key='compare')
+    if uploaded_file is None:
+        return
+
+    data = pd.read_csv(uploaded_file)
+    st.write(data.head())
+    if not st.button('Compare'):
+        return
+
+    try:
+        prepared = prepare_features(data, 'Batch')
+    except ValueError as error:
+        st.error(str(error))
+        return
+
+    table = pd.DataFrame(index=range(len(prepared)))
+    for entry in index['models']:
+        probabilities = get_model(entry['slug']).predict_proba(prepared)[:, 1]
+        table[entry['name']] = probabilities
+    st.subheader('Churn probability by algorithm')
+    st.dataframe(table.style.format('{:.1%}').background_gradient(cmap='RdYlGn_r', axis=None))
+    st.caption(
+        'Each column is one algorithm. Rows where the columns disagree are the '
+        'customers the choice of model actually changes.'
+    )
+
+
 def batch_prediction(model):
     st.subheader("Dataset upload")
     uploaded_file = st.file_uploader("Choose a file", type='csv')
@@ -119,13 +178,36 @@ def main():
     The application is functional for both online prediction and batch data prediction. \n
     """)
 
+    try:
+        index = get_index()
+    except FileNotFoundError as error:
+        st.error(str(error))
+        st.stop()
+
     # Setting Application sidebar default
-    add_selectbox = st.sidebar.selectbox("How would you like to predict?", ("Online", "Batch"))
+    mode = st.sidebar.selectbox(
+        "How would you like to predict?", ("Online", "Batch", "Compare all models"))
+
+    # The models are listed best-first, as ranked by cross-validated average
+    # precision during training.
+    names = [entry['name'] for entry in index['models']]
+    slugs = [entry['slug'] for entry in index['models']]
+    picked = st.sidebar.selectbox(
+        'Algorithm', names, index=0,
+        help='Every model trained by train.py, best first.',
+        disabled=(mode == 'Compare all models'))
+    entry = index['models'][names.index(picked)]
+    show_model_card(entry, is_best=(slugs[names.index(picked)] == index['best']))
+
     st.sidebar.info('This app is created to predict Customer Churn')
     st.sidebar.image(Image.open(IMAGE_PATH))
 
-    model = load_model()
-    if add_selectbox == "Online":
+    if mode == 'Compare all models':
+        compare_all(index)
+        return
+
+    model = get_model(entry['slug'])
+    if mode == "Online":
         online_prediction(model)
     else:
         batch_prediction(model)

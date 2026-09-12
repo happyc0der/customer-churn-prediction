@@ -6,10 +6,15 @@
 >
 > Forked from [codebrain001/customer-churn-prediction](https://github.com/codebrain001/customer-churn-prediction).
 
-A Streamlit app that predicts whether a telecom customer is likely to churn, using a
-gradient boosting model trained on the Telco customer churn dataset (7,043 customers).
-It is tuned to catch churners rather than to maximise raw accuracy — see
-[Results](#results).
+A Streamlit app that predicts whether a telecom customer is likely to churn, trained
+on the Telco customer churn dataset (7,043 customers).
+
+**Nine classical algorithms** are trained and shipped — logistic regression, linear
+and RBF SVM, random forest, extra trees, gradient boosting, histogram gradient
+boosting, k-nearest neighbours and naive Bayes. Any of them can be selected in the
+app, and a *Compare all models* mode scores the same customers with every one. The
+default is gradient boosting, tuned to catch churners rather than to maximise raw
+accuracy — see [the model gallery](#the-model-gallery).
 
 ![Demo of the Streamlit app](streamlit-app.gif)
 
@@ -27,6 +32,8 @@ The app supports the two ways such a model normally gets used:
   prediction back, with the estimated probability of churn.
 - **Batch prediction** — upload a CSV of customers and get a prediction and probability
   for every row.
+- **Compare all models** — upload a CSV and score it with all nine algorithms at once,
+  to see where they agree and where they part company.
 
 ---
 
@@ -59,6 +66,10 @@ browser. Run the command from the repository root so the app can find the saved 
 
 ### Trying a prediction
 
+Pick an algorithm from the **Algorithm** dropdown in the sidebar at any time; the
+expander underneath it shows what that model is and how it scored. The list is
+ordered best-first.
+
 - **Online** — leave the sidebar on `Online`, fill in the form, and press **Predict**.
 - **Batch** — switch the sidebar to `Batch`, upload a CSV, and press **Predict**.
   `data/batch_churn.csv` is a small sample you can use; `data/churn.csv` (the full
@@ -71,13 +82,14 @@ browser. Run the command from the repository root so the app can find the saved 
 
   `SeniorCitizen` may be either `Yes`/`No` or `1`/`0`.
 
-### Retraining the model
+### Retraining the models
 
 ```bash
 python train.py
 ```
 
-This rebuilds `notebook/model.sav`. See [How the model was built](#how-the-model-was-built).
+This retrains all nine algorithms and rebuilds `models/`. See
+[the model gallery](#the-model-gallery).
 
 ### Re-running the analysis notebook
 
@@ -90,8 +102,8 @@ pip install -r requirements-notebook.txt && jupyter lab notebook/EDA.ipynb
 
 Run the cells in order — later cells depend on transformations applied by earlier ones.
 The hyperparameter search cell fits 500 candidates across 30 cross-validation folds and
-takes a while. The notebook does not overwrite the deployed model; `train.py` produces
-that.
+takes a while. The notebook does not overwrite the deployed models; `train.py`
+produces those.
 
 ---
 
@@ -100,112 +112,133 @@ that.
 | Path | What it is |
 | --- | --- |
 | `app.py` | Streamlit app — the online and batch prediction screens |
-| `train.py` | Trains the model and writes `notebook/model.sav` |
+| `train.py` | Trains all nine algorithms and writes `models/` |
 | `preprocessing.py` | Prepares raw feature columns; shared by `train.py` and the app |
+| `models/` | One fitted pipeline per algorithm, plus `index.json` describing them |
+| `docs/model_comparison.png` | ROC and precision/recall curves for all nine |
 | `notebook/EDA.ipynb` | Exploratory analysis and the original baseline model |
-| `notebook/model.sav` | The trained pipeline (preprocessing + model), saved with `joblib` |
 | `data/churn.csv` | The Telco churn dataset used for training (7,043 rows) |
 | `data/batch_churn.csv` | Small sample file for trying out batch prediction |
 | `requirements.txt` | Dependencies for the app and for retraining |
-| `requirements-notebook.txt` | Extra dependencies for re-running the notebook |
+| `requirements-notebook.txt` | Extra dependencies for the notebook and the comparison plot |
 
 ---
 
-## How the model was built
+## The model gallery
 
-`train.py` is the training pipeline. Run it from the repository root to
-reproduce `notebook/model.sav`:
+`train.py` trains **nine classical algorithms**, tunes a decision threshold for
+each, scores them all on the same held-out test set, and saves every fitted
+pipeline to `models/`. The app can predict with any of them — pick one from the
+**Algorithm** dropdown in the sidebar.
 
 ```bash
 python train.py
 ```
 
-It takes a few minutes. Add `--quick` for a reduced search, or `--no-save` to
-print the results without overwriting the model.
+Takes about a minute. `--quick` runs a reduced search, `--no-save` reports without
+writing, and `--only <slug>` trains just one model.
 
-What it does:
+### What it does
 
 1. **Holds out a stratified 20% test set** up front, and touches it exactly once
    at the end.
 2. **Puts every preprocessing step inside the pipeline** — median imputation for
    the blank `TotalCharges` values, standard scaling, and one-hot encoding — so
    each step is fitted on the training fold only.
-3. **Searches nine classical models** with randomised hyperparameter search and
-   5-fold cross-validation: logistic regression, linear SVM, RBF SVM, random
-   forest, extra trees, gradient boosting, histogram gradient boosting, k-nearest
-   neighbours, and naive Bayes.
+3. **Searches each algorithm** with randomised hyperparameter search and 5-fold
+   cross-validation.
 4. **Selects on average precision**, not accuracy. Only ~26.5% of customers churn,
    so a model that never predicts churn already scores 73.5% accuracy.
-5. **Tunes the decision threshold** for F1 by cross-validation on the training
-   set. The threshold is saved with the model, so `model.predict()` uses it.
-
-Gradient boosting won, with a chosen threshold of 0.33 rather than the default 0.5.
+5. **Tunes a decision threshold per model** for F1, by cross-validation on the
+   training set. Each model is therefore compared at its own best operating
+   point rather than at an arbitrary shared 0.5, and the threshold is saved with
+   the model so `predict()` uses it.
 
 ### Results
 
-On the held-out test set (1,409 customers, 374 of whom churned):
+![ROC and precision/recall curves for all nine models](docs/model_comparison.png)
 
-| | Old model | **Current model** |
+On the held-out test set (1,409 customers, 374 of whom churned), each model at
+its own tuned threshold:
+
+| Model | Family | Recall | Precision | F1 | Bal. acc. | Accuracy | ROC AUC | PR AUC | Thr. |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| **Gradient boosting** | Boosted trees | 0.751 | 0.545 | **0.631** | 0.762 | 0.767 | **0.846** | 0.657 | 0.31 |
+| Histogram gradient boosting | Boosted trees | 0.706 | 0.568 | 0.629 | 0.756 | 0.779 | 0.841 | **0.659** | 0.60 |
+| Random forest | Bagged trees | **0.805** | 0.513 | 0.626 | **0.764** | 0.745 | 0.844 | 0.656 | 0.49 |
+| RBF SVM | Support vector machine | 0.743 | 0.537 | 0.623 | 0.756 | 0.762 | 0.835 | 0.634 | 0.41 |
+| Logistic regression | Linear | 0.730 | 0.541 | 0.621 | 0.753 | 0.764 | 0.842 | 0.632 | 0.57 |
+| Extra trees | Bagged trees | 0.733 | 0.539 | 0.621 | 0.753 | 0.763 | 0.836 | 0.631 | 0.56 |
+| Linear SVM | Support vector machine | 0.719 | 0.539 | 0.616 | 0.749 | 0.762 | 0.840 | 0.630 | 0.34 |
+| K-nearest neighbours | Instance based | 0.733 | 0.531 | 0.616 | 0.749 | 0.757 | 0.836 | 0.628 | 0.38 |
+| Naive Bayes | Probabilistic | 0.757 | 0.504 | 0.605 | 0.744 | 0.738 | 0.810 | 0.587 | 0.99 |
+
+Gradient boosting wins on cross-validated average precision and is what the app
+loads by default.
+
+### What the comparison actually shows
+
+**The algorithms barely differ.** Eight of the nine sit inside 0.015 F1 of each
+other, and their ROC curves in the chart above are almost on top of one another.
+Only naive Bayes clearly trails, and for a understandable reason: it assumes every
+feature is independent given the outcome, and here `InternetService`,
+`OnlineSecurity` and `StreamingTV` are obviously entangled.
+
+That is the honest result for this dataset, and it is worth more than a leaderboard:
+churn on these 16 features is close to a linear problem, so the extra capacity of
+kernels and tree ensembles has little left to find. Picking a fancier algorithm was
+never going to be the lever.
+
+**The threshold was the lever.** Moving off the default 0.5 cut-off changed far more
+than the choice of model. Against the project's original logistic regression, out of
+the 374 customers who actually churned:
+
+| | Original model | Current default |
 | --- | --- | --- |
-| | Logistic regression | **Gradient boosting** |
-| Accuracy | 0.805 | 0.772 |
-| Balanced accuracy | 0.732 | **0.759** |
-| Precision (churn) | 0.649 | 0.554 |
-| Recall (churn) | 0.578 | **0.730** |
-| F1 (churn) | 0.611 | **0.630** |
-| ROC AUC | 0.844 | 0.845 |
-| PR AUC | 0.640 | **0.656** |
+| | Logistic regression @ 0.5 | Gradient boosting @ 0.31 |
+| Churners caught | 216 | **281** |
+| Churners missed | 158 | **93** |
+| False alarms | **117** | 220 |
+| Accuracy | **0.805** | 0.767 |
+| Recall | 0.578 | **0.751** |
 
-In plain terms, out of 374 customers who actually left:
+Accuracy *falls*. That is the intended trade: for a retention campaign, contacting a
+happy customer is cheap and losing one silently is not. Note also that the original
+model's figures flatter it — it was trained on a 70/30 split of the full dataset, so
+it had already seen most of this test set.
 
-- the old model caught **216** and missed 158, raising 117 false alarms
-- the current model catches **273** and misses 101, raising 220 false alarms
-
-That is the trade this model makes deliberately. Accuracy *falls*, because
-predicting churn more readily costs some precision, but the model finds 57 more
-of the customers who were about to leave. For a retention campaign that is
-usually the better error to make: contacting a happy customer is cheap, losing
-one silently is not.
-
-Two honest caveats:
-
-- **Most of the gain comes from the threshold, not the algorithm.** ROC AUC barely
-  moved (0.844 → 0.845), which means the models rank customers by risk about
-  equally well. On this dataset the classical algorithms are within noise of each
-  other — gradient boosting only edges logistic regression on PR AUC
-  (0.675 vs 0.661 in cross-validation). The real gain was moving off the 0.5
-  cut-off.
-- **The old model's numbers here are, if anything, flattering.** It was trained on
-  a 70/30 split of the full dataset, so most of this test set was in its training
-  data. The comparison still favours the new model.
-
-For reference, all nine models by cross-validated average precision:
-
-| Model | Avg. precision |
-| --- | --- |
-| **Gradient boosting** | **0.675** |
-| Histogram gradient boosting | 0.667 |
-| Random forest | 0.666 |
-| Logistic regression | 0.661 |
-| RBF SVM | 0.660 |
-| Linear SVM | 0.659 |
-| Extra trees | 0.656 |
-| K-nearest neighbours | 0.633 |
-| Naive Bayes | 0.617 |
+**Models disagree most where it matters.** Try *Compare all models* in the sidebar
+and upload `data/batch_churn.csv`. The same customer can be scored 26% by gradient
+boosting and 85% by naive Bayes. Naive Bayes in particular returns near-0% and
+near-100% probabilities — confident and poorly calibrated, which is exactly what its
+independence assumption produces.
 
 ---
 
 ## Notes
 
-`notebook/model.sav` is a complete scikit-learn pipeline — it takes the raw
+Every file in `models/` is a complete scikit-learn pipeline: it takes the raw
 feature columns and does its own imputation, scaling and encoding. Keeping
-preprocessing inside the saved model is deliberate: when the encoding lives in
-two places it drifts, and the model ends up scoring features that do not mean
-what it was trained on.
+preprocessing inside the saved model is deliberate — when the encoding lives in
+two places it drifts, and the model ends up scoring features that do not mean what
+it was trained on.
 
-`preprocessing.py` is the single entry point that prepares raw columns for the
-model, used by both `train.py` and the app, for the same reason.
+`preprocessing.py` is the single entry point that prepares raw columns, used by both
+`train.py` and the app, for the same reason.
 
-The notebook holds the exploratory analysis and the original baseline. Its
-scaling is fitted before the train/test split, so its reported scores are mildly
-optimistic; `train.py` supersedes it for training the deployed model.
+A few practical constraints are baked into `train.py`:
+
+- **Forest depth is bounded.** An unpruned 800-tree forest pickles to ~160 MB, which
+  has no business in a git repository. Bounding depth and leaf size costs about 0.002
+  average precision and keeps the whole gallery near 6 MB.
+- **Both SVMs are wrapped in `CalibratedClassifierCV`.** `SVC`'s own `predict()`
+  follows the class-weighted decision boundary while its `predict_proba()` is Platt-
+  scaled to the original class balance, so the two disagree; thresholding such a
+  probability is unsound. Explicit calibration makes them agree.
+- **The linear SVM uses `LinearSVC`, not `SVC(kernel='linear')`.** libsvm's linear
+  kernel did not finish three candidates in five minutes on 5,634 rows; liblinear
+  finishes in one second.
+
+The notebook holds the exploratory analysis and the original baseline. Its scaling is
+fitted before the train/test split, so its reported scores are mildly optimistic;
+`train.py` supersedes it for training the deployed models.

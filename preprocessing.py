@@ -1,7 +1,7 @@
 """Raw-feature preparation shared by `train.py` and the Streamlit app.
 
-The saved model (`notebook/model.sav`) is a scikit-learn pipeline that does
-its own imputation, scaling and one-hot encoding. So the only job left here is
+Each saved model in `models/` is a scikit-learn pipeline that does its own
+imputation, scaling and one-hot encoding. So the only job left here is
 to hand it the raw columns in a consistent shape, whether they came from the
 app's form or from an uploaded CSV.
 
@@ -10,13 +10,20 @@ deliberate: when encoding lives in two places it drifts, and the model then
 silently scores features that do not mean what it was trained on.
 """
 
+import json
 from pathlib import Path
 
+import joblib
 import pandas as pd
 
 BASE_DIR = Path(__file__).parent
 DATA_PATH = BASE_DIR / 'data' / 'churn.csv'
-MODEL_PATH = BASE_DIR / 'notebook' / 'model.sav'
+
+# `train.py` writes one fitted pipeline per algorithm into models/, plus an
+# index describing them. The app reads the index to populate its model picker.
+MODELS_DIR = BASE_DIR / 'models'
+INDEX_PATH = MODELS_DIR / 'index.json'
+PLOT_PATH = BASE_DIR / 'docs' / 'model_comparison.png'
 
 # The raw features the model is trained on. These are exactly the fields the
 # app's online form collects, so both entry points agree.
@@ -55,3 +62,20 @@ def prepare_features(df, option):
         df[column] = pd.to_numeric(df[column], errors='coerce')
 
     return df
+
+
+def load_index():
+    """Read the model gallery index written by `train.py`."""
+    if not INDEX_PATH.exists():
+        raise FileNotFoundError(
+            f'No model gallery found at {INDEX_PATH}. Run `python train.py` first.')
+    return json.loads(INDEX_PATH.read_text())
+
+
+def load_model(slug):
+    """Load one fitted pipeline from the gallery by its slug."""
+    path = MODELS_DIR / f'{slug}.joblib'
+    if not path.exists():
+        raise FileNotFoundError(
+            f'No model file at {path}. Run `python train.py` first.')
+    return joblib.load(path)

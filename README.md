@@ -116,6 +116,21 @@ python train.py
 This retrains all nine algorithms and rebuilds `models/`. See
 [the model gallery](#the-model-gallery).
 
+### Running the tests
+
+```bash
+pip install -r requirements-dev.txt && pytest
+```
+
+About 50 tests covering the preprocessing, the saved models, the app (through
+Streamlit's own `AppTest`, no browser needed), the notebook and `train.py`. They
+run in roughly 20 seconds; `pytest -m "not slow"` skips the two that invoke
+`train.py`.
+
+Nearly every test pins a bug that actually shipped in this repository, and each
+is commented with the one it guards. They were validated by reintroducing those
+bugs one at a time and confirming the suite goes red — all nine did.
+
 ### Re-running the analysis notebook
 
 The notebook holds the exploratory analysis and the original baseline model. It needs a
@@ -145,7 +160,9 @@ produces those.
 | `notebook/EDA.ipynb` | Exploratory analysis and the original baseline model |
 | `data/churn.csv` | The Telco churn dataset used for training (7,043 rows) |
 | `data/batch_churn.csv` | Small sample file for trying out batch prediction |
+| `tests/` | Regression tests, one per bug this project has had |
 | `requirements.txt` | Dependencies for the app and for retraining |
+| `requirements-dev.txt` | Adds pytest, for running the tests |
 | `requirements-notebook.txt` | Extra dependencies for the notebook and the comparison plot |
 
 ---

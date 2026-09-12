@@ -1,0 +1,7 @@
+# Extra dependencies needed only to re-run notebook/EDA.ipynb.
+-r requirements.txt
+jupyterlab>=4.0
+matplotlib>=3.7
+plotly>=5.18
+statsmodels>=0.14
+scipy>=1.11

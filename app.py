@@ -6,6 +6,8 @@ Every algorithm trained by `train.py` is selectable in the sidebar, so the
 same customer can be scored by each one for comparison.
 """
 
+from importlib.util import find_spec
+
 import pandas as pd
 import streamlit as st
 from PIL import Image
@@ -128,11 +130,20 @@ def compare_all(index):
     for entry in index['models']:
         probabilities = get_model(entry['slug']).predict_proba(prepared)[:, 1]
         table[entry['name']] = probabilities
+    # How far apart the algorithms are on each customer.
+    table['Spread (max - min)'] = table.max(axis=1) - table.min(axis=1)
+
     st.subheader('Churn probability by algorithm')
-    st.dataframe(table.style.format('{:.1%}').background_gradient(cmap='RdYlGn_r', axis=None))
+    styled = table.style.format('{:.1%}')
+    # background_gradient needs matplotlib, which the app does not otherwise
+    # require. It also fails lazily, at render time rather than when called,
+    # so check for it upfront instead of catching the error.
+    if find_spec('matplotlib') is not None:
+        styled = styled.background_gradient(cmap='RdYlGn_r', axis=None)
+    st.dataframe(styled)
     st.caption(
-        'Each column is one algorithm. Rows where the columns disagree are the '
-        'customers the choice of model actually changes.'
+        'Each column is one algorithm. The rows with the largest spread are the '
+        'customers where the choice of model actually changes the answer.'
     )
 
 

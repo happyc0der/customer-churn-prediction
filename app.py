@@ -6,13 +6,21 @@ Every algorithm trained by `train.py` is selectable in the sidebar, so the
 same customer can be scored by each one for comparison.
 """
 
+import json
 from importlib.util import find_spec
 
 import pandas as pd
 import streamlit as st
 from PIL import Image
 
-from preprocessing import BASE_DIR, load_index, load_model, prepare_features
+from preprocessing import (
+    BASE_DIR,
+    INDEX_PATH,
+    load_index,
+    load_model,
+    prepare_features,
+    unknown_values,
+)
 
 IMAGE_PATH = BASE_DIR / 'App.jpg'
 
@@ -25,6 +33,24 @@ def get_index():
 @st.cache_resource
 def get_model(slug):
     return load_model(slug)
+
+
+def warn_about_unknowns(prepared, model):
+    """Tell the user about category values the model was never trained on.
+
+    The encoder ignores unrecognised categories, which silently scores the row
+    as if it held the reference value. Left unreported that is a wrong answer
+    with nothing to indicate it.
+    """
+    unknown = unknown_values(prepared, model)
+    if not unknown:
+        return
+    lines = '\n'.join(f'- **{column}**: {", ".join(values)}'
+                       for column, values in unknown.items())
+    st.warning(
+        'Some values in this file were never seen during training, so those '
+        'rows are scored as if they held the most common value. Check the '
+        'spelling against the columns listed in the README.\n\n' + lines)
 
 
 def show_model_card(entry, is_best):
@@ -130,6 +156,8 @@ def compare_all(index):
         st.error(str(error))
         return
 
+    warn_about_unknowns(prepared, get_model(index['best']))
+
     table = pd.DataFrame(index=range(len(prepared)))
     for entry in index['models']:
         probabilities = get_model(entry['slug']).predict_proba(prepared)[:, 1]
@@ -170,6 +198,8 @@ def batch_prediction(model, entry):
             st.error(str(error))
             return
 
+        warn_about_unknowns(prepared, model)
+
         # Get batch prediction
         prediction_df = pd.DataFrame({
             'Predictions': model.predict(prepared),
@@ -204,6 +234,10 @@ def main():
     except FileNotFoundError as error:
         st.error(str(error))
         st.stop()
+    except json.JSONDecodeError as error:
+        st.error(f'{INDEX_PATH} is not valid JSON ({error}). '
+                 'Run `python train.py` to rebuild it.')
+        st.stop()
 
     # Setting Application sidebar default
     mode = st.sidebar.selectbox(
@@ -226,7 +260,12 @@ def main():
         compare_all(index)
         return
 
-    model = get_model(entry['slug'])
+    try:
+        model = get_model(entry['slug'])
+    except FileNotFoundError as error:
+        st.error(str(error))
+        st.stop()
+
     if mode == "Online":
         online_prediction(model, entry)
     else:

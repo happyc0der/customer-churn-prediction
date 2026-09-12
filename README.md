@@ -73,14 +73,38 @@ ordered best-first.
 - **Online** — leave the sidebar on `Online`, fill in the form, and press **Predict**.
 - **Batch** — switch the sidebar to `Batch`, upload a CSV, and press **Predict**.
   `data/batch_churn.csv` is a small sample you can use; `data/churn.csv` (the full
-  dataset) also works. The uploaded file must contain these columns:
+  dataset) also works.
 
-  `SeniorCitizen`, `Dependents`, `tenure`, `PhoneService`, `MultipleLines`,
-  `InternetService`, `OnlineSecurity`, `OnlineBackup`, `TechSupport`, `StreamingTV`,
-  `StreamingMovies`, `Contract`, `PaperlessBilling`, `PaymentMethod`,
-  `MonthlyCharges`, `TotalCharges`
+#### Columns an uploaded file needs
 
-  `SeniorCitizen` may be either `Yes`/`No` or `1`/`0`.
+Spelling matters. A value the model was not trained on cannot be encoded, so the
+row is scored as though it held the most common value instead — a quiet wrong
+answer rather than an error. The app checks for this and warns you, naming the
+column and the value, but the accepted spellings are:
+
+| Column | Accepted values |
+| --- | --- |
+| `SeniorCitizen` | `No`, `Yes` |
+| `Dependents` | `No`, `Yes` |
+| `tenure` | number |
+| `PhoneService` | `No`, `Yes` |
+| `MultipleLines` | `No`, `No phone service`, `Yes` |
+| `InternetService` | `DSL`, `Fiber optic`, `No` |
+| `OnlineSecurity` | `No`, `No internet service`, `Yes` |
+| `OnlineBackup` | `No`, `No internet service`, `Yes` |
+| `TechSupport` | `No`, `No internet service`, `Yes` |
+| `StreamingTV` | `No`, `No internet service`, `Yes` |
+| `StreamingMovies` | `No`, `No internet service`, `Yes` |
+| `Contract` | `Month-to-month`, `One year`, `Two year` |
+| `PaperlessBilling` | `No`, `Yes` |
+| `PaymentMethod` | `Bank transfer (automatic)`, `Credit card (automatic)`, `Electronic check`, `Mailed check` |
+| `MonthlyCharges` | number |
+| `TotalCharges` | number |
+
+`SeniorCitizen` is flexible: `Yes`/`No`, `1`/`0`, `true`/`false` and any
+capitalisation all work, since the raw dataset and the app's own form spell it
+differently. Extra columns are ignored, and a blank `TotalCharges` is filled with
+the median from the training data.
 
 ### Retraining the models
 

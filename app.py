@@ -202,13 +202,12 @@ def main():
     # The models are listed best-first, as ranked by cross-validated average
     # precision during training.
     names = [entry['name'] for entry in index['models']]
-    slugs = [entry['slug'] for entry in index['models']]
     picked = st.sidebar.selectbox(
         'Algorithm', names, index=0,
         help='Every model trained by train.py, best first.',
         disabled=(mode == 'Compare all models'))
     entry = index['models'][names.index(picked)]
-    show_model_card(entry, is_best=(slugs[names.index(picked)] == index['best']))
+    show_model_card(entry, is_best=(entry['slug'] == index['best']))
 
     st.sidebar.info('This app is created to predict Customer Churn')
     st.sidebar.image(Image.open(IMAGE_PATH))

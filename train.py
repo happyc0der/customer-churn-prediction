@@ -16,6 +16,7 @@ pipeline is what stops the training and serving paths from drifting apart.
 
 import argparse
 import json
+import platform
 import shutil
 import time
 import warnings
@@ -24,6 +25,7 @@ from datetime import date
 import joblib
 import numpy as np
 import pandas as pd
+import sklearn
 from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import (
     ExtraTreesClassifier,
@@ -369,6 +371,27 @@ def main():
               f"thr {tuned.best_threshold_:.3f}  "
               f"f1 {test_metrics['f1']:.3f}  ({time.time() - started:.0f}s)")
 
+    retrained = {entry['slug'] for entry in entries}
+
+    # With --only, fold in the models that were not retrained so the ranking,
+    # the plot and the saved index still describe the whole gallery. Without
+    # this, training one model would leave the gallery holding just that one
+    # and crown it "best".
+    if args.only and INDEX_PATH.exists():
+        previous = json.loads(INDEX_PATH.read_text())
+        for entry in previous['models']:
+            if entry['slug'] in retrained:
+                continue
+            if not (MODELS_DIR / entry['file']).exists():
+                print(f"  (skipping {entry['slug']}: {entry['file']} is missing)")
+                continue
+            entries.append(entry)
+            # Re-score it so the comparison plot can still draw its curve.
+            curves[entry['slug']] = (
+                joblib.load(MODELS_DIR / entry['file']).predict_proba(X_test)[:, 1])
+        print(f'  reusing {len(entries) - len(retrained)} model(s) already in '
+              f'{MODELS_DIR.name}/')
+
     entries.sort(key=lambda e: e['cv_score'], reverse=True)
     best = entries[0]
     print('=' * 78)
@@ -380,15 +403,20 @@ def main():
     print('-' * len(header.strip()))
     for entry in entries:
         m = entry['test']
+        mark = '' if entry['slug'] in retrained else '  (reused)'
         print(f"{entry['name']:<28}{m['accuracy']:>7.3f}{m['balanced_accuracy']:>9.3f}"
               f"{m['precision']:>7.3f}{m['recall']:>8.3f}{m['f1']:>7.3f}"
-              f"{m['roc_auc']:>7.3f}{m['pr_auc']:>7.3f}{entry['threshold']:>7.3f}")
+              f"{m['roc_auc']:>7.3f}{m['pr_auc']:>7.3f}{entry['threshold']:>7.3f}{mark}")
 
     print(f"\nBest by cross-validated {SELECTION_METRIC}: {best['name']}")
     for key, value in best['params'].items():
         print(f'    {key} = {value}')
 
-    best_predictions = fitted[best['slug']].predict(X_test)
+    # With --only the best model may be one that was reused rather than
+    # retrained, so it is not in `fitted`; load it from disk in that case.
+    best_model = (fitted[best['slug']] if best['slug'] in fitted
+                  else joblib.load(MODELS_DIR / best['file']))
+    best_predictions = best_model.predict(X_test)
     print('\nConfusion matrix for the best model (rows: actual, cols: predicted)')
     print(confusion_matrix(y_test, best_predictions))
     print()
@@ -400,17 +428,26 @@ def main():
         return
 
     print(f'Writing the gallery to {MODELS_DIR.name}/')
-    if MODELS_DIR.exists():
-        shutil.rmtree(MODELS_DIR)
-    MODELS_DIR.mkdir(parents=True)
+    if args.only:
+        # A partial run must not delete the models it did not train.
+        MODELS_DIR.mkdir(parents=True, exist_ok=True)
+    else:
+        if MODELS_DIR.exists():
+            shutil.rmtree(MODELS_DIR)
+        MODELS_DIR.mkdir(parents=True)
     for entry in entries:
         destination = MODELS_DIR / entry['file']
-        joblib.dump(fitted[entry['slug']], destination, compress=COMPRESS_LEVEL)
+        if entry['slug'] in retrained:
+            joblib.dump(fitted[entry['slug']], destination, compress=COMPRESS_LEVEL)
         entry['size_kb'] = round(destination.stat().st_size / 1024, 1)
         print(f"  {entry['file']:<34} {entry['size_kb']:>8.1f} KB")
 
     index = {
         'generated': date.today().isoformat(),
+        # Pickles are tied to the library that wrote them. Recording the
+        # versions means a future reader can tell why loading might warn.
+        'sklearn_version': sklearn.__version__,
+        'python_version': platform.python_version(),
         'dataset': DATA_PATH.name,
         'rows': int(len(X)),
         'test_size': TEST_SIZE,
@@ -422,7 +459,8 @@ def main():
     INDEX_PATH.write_text(json.dumps(index, indent=2) + '\n')
     total_kb = sum(e['size_kb'] for e in entries)
     print(f"  {'index.json':<34} {INDEX_PATH.stat().st_size / 1024:>8.1f} KB")
-    print(f'  gallery total: {total_kb / 1024:.1f} MB')
+    total = (f'{total_kb / 1024:.1f} MB' if total_kb >= 1024 else f'{total_kb:.0f} KB')
+    print(f'  gallery total: {total}')
 
     print('\nComparison plot')
     write_comparison_plot(entries, y_test, curves, PLOT_PATH)

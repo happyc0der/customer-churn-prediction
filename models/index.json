@@ -1,5 +1,7 @@
 {
   "generated": "2026-09-12",
+  "sklearn_version": "1.9.1",
+  "python_version": "3.13.5",
   "dataset": "churn.csv",
   "rows": 7043,
   "test_size": 0.2,
@@ -30,7 +32,7 @@
         "roc_auc": 0.8455785476245834,
         "pr_auc": 0.6573937942495767
       },
-      "fit_seconds": 16.8,
+      "fit_seconds": 17.6,
       "size_kb": 452.8
     },
     {
@@ -56,7 +58,7 @@
         "roc_auc": 0.8410214678756878,
         "pr_auc": 0.6589144165838448
       },
-      "fit_seconds": 7.2,
+      "fit_seconds": 7.1,
       "size_kb": 108.2
     },
     {
@@ -82,7 +84,7 @@
         "roc_auc": 0.8440504792167196,
         "pr_auc": 0.6557180706858923
       },
-      "fit_seconds": 7.0,
+      "fit_seconds": 6.9,
       "size_kb": 1969.0
     },
     {
@@ -106,7 +108,7 @@
         "roc_auc": 0.8350874473636622,
         "pr_auc": 0.6342984013382623
       },
-      "fit_seconds": 14.9,
+      "fit_seconds": 15.1,
       "size_kb": 420.7
     },
     {
@@ -153,7 +155,7 @@
         "roc_auc": 0.8399596992947376,
         "pr_auc": 0.6303015866888743
       },
-      "fit_seconds": 1.0,
+      "fit_seconds": 0.9,
       "size_kb": 4.4
     },
     {

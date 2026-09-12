@@ -115,6 +115,7 @@ produces those.
 | `train.py` | Trains all nine algorithms and writes `models/` |
 | `preprocessing.py` | Prepares raw feature columns; shared by `train.py` and the app |
 | `models/` | One fitted pipeline per algorithm, plus `index.json` describing them |
+| `models/index.json` | Each model's hyperparameters, threshold, test scores and file size |
 | `docs/model_comparison.png` | ROC and precision/recall curves for all nine |
 | `notebook/EDA.ipynb` | Exploratory analysis and the original baseline model |
 | `data/churn.csv` | The Telco churn dataset used for training (7,043 rows) |
@@ -135,8 +136,17 @@ pipeline to `models/`. The app can predict with any of them — pick one from th
 python train.py
 ```
 
-Takes about a minute. `--quick` runs a reduced search, `--no-save` reports without
-writing, and `--only <slug>` trains just one model.
+Takes about a minute, and is deterministic — every seed is fixed, so a re-run
+reproduces byte-identical model files.
+
+| Flag | What it does |
+| --- | --- |
+| `--quick` | Reduced search; useful as a smoke test |
+| `--no-save` | Report the results without writing anything |
+| `--only <slug>` | Retrain just these models, keeping the rest of the gallery |
+
+Slugs are the filenames in `models/` without the extension, for example
+`python train.py --only naive_bayes knn`.
 
 ### What it does
 
@@ -238,6 +248,12 @@ A few practical constraints are baked into `train.py`:
 - **The linear SVM uses `LinearSVC`, not `SVC(kernel='linear')`.** libsvm's linear
   kernel did not finish three candidates in five minutes on 5,634 rows; liblinear
   finishes in one second.
+
+**Library versions.** Pickled models are tied to the library that wrote them, so
+`models/index.json` records the scikit-learn and Python versions used — currently
+scikit-learn 1.9.1 on Python 3.13. Loading the models with an older scikit-learn may
+print an `InconsistentVersionWarning`; `python train.py` regenerates them with
+whatever you have installed.
 
 The notebook holds the exploratory analysis and the original baseline. Its scaling is
 fitted before the train/test split, so its reported scores are mildly optimistic;

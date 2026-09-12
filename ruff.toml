@@ -1,0 +1,21 @@
+# Lint settings, shared by local runs and CI so both agree. Run: ruff check
+target-version = "py311"
+
+# The notebook is an archived record of the exploratory analysis, not code
+# that is maintained. Linting it would mean rewriting the analysis it
+# documents, so it is left alone deliberately.
+extend-exclude = ["*.ipynb"]
+
+[lint]
+select = [
+    "F",     # pyflakes: undefined names, unused imports and variables
+    "E9",    # syntax and IO errors
+    "B",     # bugbear: constructs that are usually bugs
+    "ARG",   # unused arguments
+    "SIM",   # code that simplifies
+    "RET",   # return-statement cleanups
+    "C4",    # comprehension style
+    "UP",    # syntax outdated for the target version
+    "PIE",   # assorted lints
+    "PERF",  # obvious performance traps
+]

@@ -131,6 +131,14 @@ Nearly every test pins a bug that actually shipped in this repository, and each
 is commented with the one it guards. They were validated by reintroducing those
 bugs one at a time and confirming the suite goes red — all nine did.
 
+Linting uses [ruff](https://docs.astral.sh/ruff/), configured in `ruff.toml`:
+
+```bash
+ruff check
+```
+
+Both run on every push via GitHub Actions, against Python 3.11 and 3.13.
+
 ### Re-running the analysis notebook
 
 The notebook holds the exploratory analysis and the original baseline model. It needs a
@@ -162,7 +170,9 @@ produces those.
 | `data/batch_churn.csv` | Small sample file for trying out batch prediction |
 | `tests/` | Regression tests, one per bug this project has had |
 | `requirements.txt` | Dependencies for the app and for retraining |
-| `requirements-dev.txt` | Adds pytest, for running the tests |
+| `requirements-dev.txt` | Adds pytest and ruff, for tests and linting |
+| `ruff.toml` | Lint rules, shared by local runs and CI |
+| `.github/workflows/tests.yml` | Runs the linter and the tests on every push |
 | `requirements-notebook.txt` | Extra dependencies for the notebook and the comparison plot |
 
 ---

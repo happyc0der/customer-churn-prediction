@@ -10,6 +10,26 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: Install ruff
+        # Take the version from requirements-dev.txt so local runs and CI
+        # cannot drift apart. Linting needs nothing else, so the heavy
+        # scientific stack is skipped here.
+        run: pip install "$(grep -i '^ruff' requirements-dev.txt)"
+
+      - name: Lint
+        # Rules live in ruff.toml. GitHub format puts any finding inline on
+        # the diff rather than only in the log.
+        run: ruff check --output-format=github
+
   pytest:
     runs-on: ubuntu-latest
     strategy:

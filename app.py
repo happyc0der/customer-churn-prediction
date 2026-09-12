@@ -3,17 +3,13 @@
 Run it from the repository root with:  streamlit run app.py
 """
 
-from pathlib import Path
-
 import joblib
 import pandas as pd
 import streamlit as st
 from PIL import Image
 
-from preprocessing import preprocess
+from preprocessing import BASE_DIR, MODEL_PATH, prepare_features
 
-BASE_DIR = Path(__file__).parent
-MODEL_PATH = BASE_DIR / 'notebook' / 'model.sav'
 IMAGE_PATH = BASE_DIR / 'App.jpg'
 
 
@@ -71,11 +67,14 @@ def online_prediction(model):
     st.dataframe(features_df)
 
     if st.button('Predict'):
-        prediction = model.predict(preprocess(features_df, 'Online'))
-        if prediction[0] == 1:
+        prepared = prepare_features(features_df, 'Online')
+        prediction = model.predict(prepared)[0]
+        probability = model.predict_proba(prepared)[0][1]
+        if prediction == 1:
             st.warning('Yes, the customer will terminate the service.')
         else:
             st.success('No, the customer is happy with Telco Services.')
+        st.caption(f'Estimated probability of churn: {probability:.1%}')
 
 
 def batch_prediction(model):
@@ -90,18 +89,21 @@ def batch_prediction(model):
 
     if st.button('Predict'):
         try:
-            preprocess_df = preprocess(data, 'Batch')
+            prepared = prepare_features(data, 'Batch')
         except ValueError as error:
             st.error(str(error))
             return
 
         # Get batch prediction
-        prediction = model.predict(preprocess_df)
-        prediction_df = pd.DataFrame(prediction, columns=["Predictions"])
-        prediction_df = prediction_df.replace({
+        prediction_df = pd.DataFrame({
+            'Predictions': model.predict(prepared),
+            'Churn probability': model.predict_proba(prepared)[:, 1],
+        })
+        prediction_df['Predictions'] = prediction_df['Predictions'].replace({
             1: 'Yes, the customer will terminate the service.',
             0: 'No, the customer is happy with Telco Services.',
         })
+        prediction_df['Churn probability'] = prediction_df['Churn probability'].map('{:.1%}'.format)
 
         st.subheader('Prediction')
         st.write(prediction_df)

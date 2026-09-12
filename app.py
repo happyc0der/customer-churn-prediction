@@ -18,6 +18,7 @@ from preprocessing import (
     INDEX_PATH,
     load_index,
     load_model,
+    implausible_charges,
     prepare_features,
     unknown_values,
 )
@@ -51,6 +52,20 @@ def warn_about_unknowns(prepared, model):
         'Some values in this file were never seen during training, so those '
         'rows are scored as if they held the most common value. Check the '
         'spelling against the columns listed in the README.\n\n' + lines)
+
+
+def warn_about_charges(prepared, limit=5):
+    """Flag rows whose tenure and charges contradict each other."""
+    problems = implausible_charges(prepared)
+    if not problems:
+        return
+    shown = problems[:limit]
+    lines = '\n'.join(f'- row {position}: {reason}' for position, reason in shown)
+    if len(problems) > limit:
+        lines += f'\n- ...and {len(problems) - limit} more'
+    st.warning(
+        'These charges do not line up with the tenure, a combination the model '
+        'was never trained on, so treat the prediction with caution.\n\n' + lines)
 
 
 def show_model_card(entry, is_best):
@@ -121,6 +136,7 @@ def online_prediction(model, entry):
 
     if st.button('Predict'):
         prepared = prepare_features(features_df, 'Online')
+        warn_about_charges(prepared)
         prediction = model.predict(prepared)[0]
         probability = model.predict_proba(prepared)[0][1]
         if prediction == 1:
@@ -157,6 +173,7 @@ def compare_all(index):
         return
 
     warn_about_unknowns(prepared, get_model(index['best']))
+    warn_about_charges(prepared)
 
     table = pd.DataFrame(index=range(len(prepared)))
     for entry in index['models']:
@@ -199,6 +216,7 @@ def batch_prediction(model, entry):
             return
 
         warn_about_unknowns(prepared, model)
+        warn_about_charges(prepared)
 
         # Get batch prediction
         prediction_df = pd.DataFrame({

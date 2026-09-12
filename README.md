@@ -39,7 +39,8 @@ The app supports the two ways such a model normally gets used:
 
 ## Running it
 
-Requires Python 3.9 or newer.
+Requires **Python 3.11 or newer** — scikit-learn 1.9 and pandas 3.0 set that
+floor, and numpy 2.5 wants 3.12. Verified on 3.13 and 3.14.
 
 **1. Clone the repository and enter it**
 

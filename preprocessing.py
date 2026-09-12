@@ -67,6 +67,42 @@ def _to_yes_no(value):
         return value
 
 
+# In data/churn.csv, TotalCharges / (tenure * MonthlyCharges) falls between
+# 0.69 and 1.57 for every customer, and every customer with tenure 0 has a
+# blank TotalCharges. Anything outside that is a combination the model was
+# never trained on, so its prediction is guesswork.
+CHARGE_RATIO_BOUNDS = (0.65, 1.6)
+
+
+def implausible_charges(df):
+    """Rows whose tenure, MonthlyCharges and TotalCharges contradict each other.
+
+    Returns a list of (row position, explanation). The model will happily
+    score a customer who has been subscribed for zero months yet paid a
+    thousand pounds; this is what lets a caller say so.
+    """
+    low, high = CHARGE_RATIO_BOUNDS
+    problems = []
+    for position, (_, row) in enumerate(df.iterrows()):
+        tenure, monthly, total = row['tenure'], row['MonthlyCharges'], row['TotalCharges']
+        if pd.isna(total) or pd.isna(tenure) or pd.isna(monthly):
+            continue
+        if tenure == 0:
+            if total > 0:
+                problems.append((position, f'tenure is 0 months but TotalCharges is {total:,.2f}'))
+            continue
+        if monthly <= 0:
+            continue
+        ratio = total / (tenure * monthly)
+        if not low <= ratio <= high:
+            problems.append((
+                position,
+                f'TotalCharges {total:,.2f} is {ratio:.2f}x tenure x MonthlyCharges '
+                f'({tenure:g} x {monthly:,.2f}); training data stays within '
+                f'{low:g}-{high:g}x'))
+    return problems
+
+
 def _fitted_pipeline(model):
     """The pipeline inside a threshold-tuned model."""
     return getattr(model, 'estimator_', model)

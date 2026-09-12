@@ -122,14 +122,14 @@ This retrains all nine algorithms and rebuilds `models/`. See
 pip install -r requirements-dev.txt && pytest
 ```
 
-About 50 tests covering the preprocessing, the saved models, the app (through
+62 tests covering the preprocessing, the saved models, the app (through
 Streamlit's own `AppTest`, no browser needed), the notebook and `train.py`. They
-run in roughly 20 seconds; `pytest -m "not slow"` skips the two that invoke
-`train.py`.
+run in about 20 seconds; `pytest -m "not slow"` skips the two that invoke
+`train.py` and finishes in 10.
 
 Nearly every test pins a bug that actually shipped in this repository, and each
 is commented with the one it guards. They were validated by reintroducing those
-bugs one at a time and confirming the suite goes red — all nine did.
+bugs one at a time and confirming the suite goes red — all ten did.
 
 Linting uses [ruff](https://docs.astral.sh/ruff/), configured in `ruff.toml` —
 likely bugs, dead code, import order and a 100-character line limit:
